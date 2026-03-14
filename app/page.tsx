@@ -2,6 +2,12 @@
 
 import { useState, useRef, useEffect } from 'react'
 import {
+  BookOpen, Cpu, Brain, Lightbulb, Users, Wrench,
+  CalendarDays, ChevronRight, ArrowLeft, Circle,
+  CheckCircle2, Clock, BarChart3, Award, Layers,
+  MessageCircle, Send, X, Zap
+} from 'lucide-react'
+import {
   SKILLS, SKILL_TRACKS, WORKSHOPS, PLATFORM_STATS,
   type Skill, type SkillTrack, type Workshop,
 } from './data/skills'
@@ -44,8 +50,10 @@ const css = `
     --text-dim:    #5a8a6a;
     --text-muted:  #233d2c;
     --accent:      #00e676;
-    --accent-soft: #00e67610;
-    --accent-mid:  #00e67628;
+    --accent-soft: #00a85410;
+    --accent-mid:  #00a85428;
+    --btn:         #00a854;
+    --btn-hover:   #008f47;
     --accent2:     #00c864;
     --warn:        #f0c040;
     --font-serif:  'Playfair Display', Georgia, serif;
@@ -123,7 +131,7 @@ const css = `
   .nav-arbi {
     display: flex; align-items: center; gap: 8px;
     padding: 10px 22px;
-    background: var(--accent); color: #06100a;
+    background: var(--btn); color: #fff;
     border: none; cursor: pointer;
     font-family: var(--font-sans);
     font-weight: 600; font-size: 0.82rem;
@@ -131,11 +139,11 @@ const css = `
     transition: all 0.2s;
     letter-spacing: 0.2px;
   }
-  .nav-arbi:hover { background: var(--accent2); transform: translateY(-1px); box-shadow: 0 4px 20px rgba(0,230,118,0.25); }
+  .nav-arbi:hover { background: var(--btn-hover); transform: translateY(-1px); box-shadow: 0 4px 20px rgba(0,168,84,0.3); }
 
   .nav-arbi-pulse {
     width: 7px; height: 7px; border-radius: 50%;
-    background: #06100a;
+    background: rgba(255,255,255,0.7);
     animation: livepulse 2s ease-in-out infinite;
   }
   @keyframes livepulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
@@ -186,15 +194,16 @@ const css = `
 
   .btn-primary {
     padding: 14px 32px;
-    background: var(--accent); color: #06100a;
+    background: var(--btn); color: #fff;
     border: none; cursor: pointer;
     font-family: var(--font-sans);
     font-weight: 600; font-size: 0.875rem;
     border-radius: var(--radius);
     transition: all 0.2s;
     letter-spacing: 0.2px;
+    display: inline-flex; align-items: center; gap: 8px;
   }
-  .btn-primary:hover { background: var(--accent2); transform: translateY(-1px); box-shadow: 0 6px 24px rgba(0,230,118,0.25); }
+  .btn-primary:hover { background: var(--btn-hover); transform: translateY(-1px); box-shadow: 0 6px 24px rgba(0,168,84,0.3); }
 
   .btn-ghost {
     padding: 13px 28px;
@@ -791,13 +800,13 @@ const css = `
   .drawer-input::placeholder { color: #1e3d28; }
 
   .drawer-send {
-    width: 44px; background: var(--accent); color: #06100a;
+    width: 44px; background: var(--btn); color: #fff;
     border: none; cursor: pointer; font-size: 1.1rem;
     font-weight: 700; transition: all 0.2s;
     display: flex; align-items: center; justify-content: center;
     border-radius: 8px; flex-shrink: 0;
   }
-  .drawer-send:hover{background:var(--accent2)} .drawer-send:disabled{opacity:.3;cursor:not-allowed}
+  .drawer-send:hover{background:var(--btn-hover)} .drawer-send:disabled{opacity:.3;cursor:not-allowed}
   .drawer-hint { font-size: 0.6rem; color: #162a1e; margin-top: 8px; font-family: var(--font-mono); }
 
   @media(max-width:900px){
@@ -816,14 +825,29 @@ const css = `
 `
 
 const PATHWAY_NODES = [
-  { id:'utils',      icon:'⟳', name:'Utils',     status:'complete', url:'https://utils-pi-one.vercel.app' },
-  { id:'groundzero', icon:'▣', name:'GroundZero', status:'complete', url:'https://gzbnos.vercel.app' },
-  { id:'btu',        icon:'⊕', name:'BTU',        status:'complete', url:'https://btu-two.vercel.app' },
-  { id:'skills',     icon:'◎', name:'Skills',     status:'current',  url:'#' },
-  { id:'guuz',       icon:'◆', name:'Guuz',       status:'next',     url:'#' },
-  { id:'profile',    icon:'◉', name:'Profile',    status:'locked',   url:'#' },
-  { id:'career',     icon:'✦', name:'Career',     status:'locked',   url:'#' },
+  { id:'utils',      icon:'recycle',    name:'Utils',     status:'complete', url:'https://utils-pi-one.vercel.app' },
+  { id:'groundzero', icon:'home',       name:'GroundZero', status:'complete', url:'https://gzbnos.vercel.app' },
+  { id:'btu',        icon:'id-card',    name:'BTU',        status:'complete', url:'https://btu-two.vercel.app' },
+  { id:'skills',     icon:'book-open',  name:'Skills',     status:'current',  url:'#' },
+  { id:'guuz',       icon:'store',      name:'Guuz',       status:'next',     url:'#' },
+  { id:'profile',    icon:'user',       name:'Profile',    status:'locked',   url:'#' },
+  { id:'career',     icon:'briefcase',  name:'Career',     status:'locked',   url:'#' },
 ]
+
+// Icon map for pathway
+const PathIcon = ({ name, size=16 }: { name: string; size?: number }) => {
+  const props = { size, strokeWidth: 1.8 }
+  switch(name) {
+    case 'recycle':   return <svg {...props} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={props.strokeWidth} width={size} height={size}><path d="M7 19H4.815a1.83 1.83 0 0 1-1.57-.881 1.785 1.785 0 0 1-.004-1.784L7.196 9.5"/><path d="M11 19h8.203a1.83 1.83 0 0 0 1.556-.89 1.784 1.784 0 0 0 0-1.775l-1.226-2.12"/><path d="m14 16 3 3-3 3"/><path d="M8.293 13.596 7.196 9.5 3.1 10.598"/><path d="m9.344 5.811 1.093-1.892A1.83 1.83 0 0 1 11.985 3a1.784 1.784 0 0 1 1.546.888l3.943 6.843"/><path d="m13.378 9.633 4.096 1.098 1.097-4.096"/></svg>
+    case 'home':      return <svg {...props} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={props.strokeWidth} width={size} height={size}><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+    case 'id-card':   return <svg {...props} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={props.strokeWidth} width={size} height={size}><rect width="20" height="14" x="2" y="5" rx="2"/><circle cx="9" cy="12" r="2"/><path d="M15 12h2M15 9h2M9 17h6"/></svg>
+    case 'book-open': return <BookOpen {...props}/>
+    case 'store':     return <svg {...props} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={props.strokeWidth} width={size} height={size}><path d="m2 7 4.41-4.41A2 2 0 0 1 7.83 2h8.34a2 2 0 0 1 1.42.59L22 7"/><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><path d="M15 22v-4a2 2 0 0 0-2-2h-2a2 2 0 0 0-2 2v4"/><path d="M2 7h20"/><path d="M22 7v3a2 2 0 0 1-2 2a2.7 2.7 0 0 1-1.59-.63.7.7 0 0 0-.82 0A2.7 2.7 0 0 1 16 12a2.7 2.7 0 0 1-1.59-.63.7.7 0 0 0-.82 0A2.7 2.7 0 0 1 12 12a2.7 2.7 0 0 1-1.59-.63.7.7 0 0 0-.82 0A2.7 2.7 0 0 1 8 12a2.7 2.7 0 0 1-1.59-.63.7.7 0 0 0-.82 0A2.7 2.7 0 0 1 4 12a2 2 0 0 1-2-2V7"/></svg>
+    case 'user':      return <svg {...props} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={props.strokeWidth} width={size} height={size}><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+    case 'briefcase': return <svg {...props} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={props.strokeWidth} width={size} height={size}><rect width="20" height="14" x="2" y="7" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+    default: return <Circle {...props}/>
+  }
+}
 
 const CATS = [
   { id:'all',               label:'All Skills' },
@@ -882,12 +906,7 @@ export default function SkillsApp() {
       <nav className="nav">
         <div className="nav-logo" onClick={()=>setView('home')}>
           <div className="nav-logo-icon">
-            <svg viewBox="0 0 18 18" fill="none">
-              <circle cx="9" cy="9" r="6" stroke="#06100a" strokeWidth="1.5"/>
-              <circle cx="9" cy="9" r="2.5" fill="#06100a"/>
-              <line x1="9" y1="3" x2="9" y2="0" stroke="#06100a" strokeWidth="1.5"/>
-              <line x1="9" y1="15" x2="9" y2="18" stroke="#06100a" strokeWidth="1.5"/>
-            </svg>
+            <BookOpen size={17} color="#06100a" strokeWidth={2.2}/>
           </div>
           <span className="nav-logo-text">XenoGen Skills</span>
         </div>
@@ -903,6 +922,7 @@ export default function SkillsApp() {
         <div className="nav-right">
           <button className="nav-arbi" onClick={()=>setArbi(true)}>
             <div className="nav-arbi-pulse"/>
+            <MessageCircle size={14} strokeWidth={2}/>
             Talk to ARBI
           </button>
         </div>
@@ -914,7 +934,7 @@ export default function SkillsApp() {
           <div key={n.id}
             className={`pnode ${n.status} ${n.status==='current'?'current':''}`}
             onClick={()=>{ if(n.url!=='#'&&n.status!=='locked') window.open(n.url,'_blank') }}>
-            <div className="pnode-icon">{n.icon}</div>
+            <div className="pnode-icon"><PathIcon name={n.icon} size={15}/></div>
             <div className="pnode-name">{n.name}</div>
             <div className="pnode-status">{n.status}</div>
           </div>
@@ -938,9 +958,9 @@ export default function SkillsApp() {
               wherever you're starting from.
             </p>
             <div className="hero-actions">
-              <button className="btn-primary" onClick={()=>setView('skills')}>Browse Skills</button>
-              <button className="btn-ghost" onClick={()=>setView('tracks')}>View Learning Tracks</button>
-              <button className="btn-ghost" onClick={()=>setArbi(true)}>Talk to ARBI</button>
+              <button className="btn-primary" onClick={()=>setView('skills')}><BookOpen size={15}/>Browse Skills</button>
+              <button className="btn-ghost" onClick={()=>setView('tracks')}><Layers size={15}/>View Tracks</button>
+              <button className="btn-ghost" onClick={()=>setArbi(true)}><MessageCircle size={15}/>Talk to ARBI</button>
             </div>
           </div>
           <div className="hero-right">
@@ -1081,7 +1101,7 @@ export default function SkillsApp() {
               <div className="drawer-head-name">ARBI</div>
               <div className="drawer-head-sub">Skills Platform Guide · XenoGenesis</div>
             </div>
-            <button className="drawer-close" onClick={()=>setArbi(false)}>✕</button>
+            <button className="drawer-close" onClick={()=>setArbi(false)}><X size={14}/></button>
           </div>
           <div className="drawer-msgs">
             {msgs.map((m,i)=>(
@@ -1103,7 +1123,7 @@ export default function SkillsApp() {
                 onChange={e=>setInput(e.target.value)}
                 onKeyDown={e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send()}}}
                 placeholder="Ask ARBI about your learning journey..."/>
-              <button className="drawer-send" onClick={send} disabled={streaming||!input.trim()}>→</button>
+              <button className="drawer-send" onClick={send} disabled={streaming||!input.trim()}><Send size={16}/></button>
             </div>
             <div className="drawer-hint">ENTER to send · SHIFT+ENTER for new line</div>
           </div>
@@ -1211,7 +1231,7 @@ function SkillDetail({ skill, gradient, onBack, onARBI }:
   { skill: Skill; gradient: string; onBack:()=>void; onARBI:()=>void }) {
   return (
     <div className="detail">
-      <button className="detail-back" onClick={onBack}>← Back to Skills</button>
+      <button className="detail-back" onClick={onBack}><ArrowLeft size={15}/> Back to Skills</button>
       <div className="detail-hero">
         <div className="detail-hero-img">
           <div className="detail-hero-img-inner" style={{background: gradient}}/>
@@ -1226,8 +1246,8 @@ function SkillDetail({ skill, gradient, onBack, onARBI }:
           <h1 className="detail-title">{skill.title}</h1>
           <p className="detail-desc">{skill.description}</p>
           <div className="detail-actions">
-            <button className="btn-primary">Enrol Now</button>
-            <button className="btn-ghost" onClick={onARBI}>Ask ARBI →</button>
+            <button className="btn-primary"><Award size={15}/>Enrol Now</button>
+            <button className="btn-ghost" onClick={onARBI}><MessageCircle size={15}/>Ask ARBI</button>
           </div>
         </div>
       </div>
