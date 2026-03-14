@@ -2,41 +2,57 @@
 
 import { useState, useRef, useEffect } from 'react'
 import {
-  SKILLS,
-  SKILL_TRACKS,
-  WORKSHOPS,
-  PLATFORM_STATS,
-  type Skill,
-  type SkillTrack,
-  type Workshop,
+  SKILLS, SKILL_TRACKS, WORKSHOPS, PLATFORM_STATS,
+  type Skill, type SkillTrack, type Workshop,
 } from './data/skills'
 import { ARBI_WELCOME } from './core/arbi'
 
 type View = 'home' | 'skills' | 'tracks' | 'workshops' | 'skill-detail'
 type Message = { role: 'user' | 'assistant'; content: string }
 
+// Gradient placeholders per category — rich, intentional, cinematic
+const CATEGORY_GRADIENTS: Record<string, string> = {
+  foundation:        'linear-gradient(135deg, #0d2b1a 0%, #0a4a2a 50%, #062010 100%)',
+  ai:                'linear-gradient(135deg, #071a2b 0%, #0a3a4a 50%, #041520 100%)',
+  consciousness:     'linear-gradient(135deg, #1a0d2b 0%, #2a0a3a 50%, #100620 100%)',
+  'critical-thinking':'linear-gradient(135deg, #0d1a2b 0%, #0a2a4a 50%, #061020 100%)',
+  'soft-skill':      'linear-gradient(135deg, #1a1a0d 0%, #2a2a0a 50%, #101006 100%)',
+  'hard-skill':      'linear-gradient(135deg, #2b1a0d 0%, #3a2a0a 50%, #201006 100%)',
+  workshop:          'linear-gradient(135deg, #0d2b1a 0%, #1a3a2a 50%, #062010 100%)',
+}
+
+const TRACK_GRADIENTS = [
+  'linear-gradient(135deg, #071a10 0%, #0a3020 100%)',
+  'linear-gradient(135deg, #071018 0%, #0a2030 100%)',
+  'linear-gradient(135deg, #1a1207 0%, #2a2010 100%)',
+  'linear-gradient(135deg, #18070a 0%, #300a10 100%)',
+  'linear-gradient(135deg, #14071a 0%, #220a2a 100%)',
+]
+
 const css = `
-  @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,300&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;0,900;1,400;1,600&family=Plus+Jakarta+Sans:wght@300;400;500;600&family=DM+Mono:wght@300;400;500&display=swap');
 
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
   :root {
-    --bg:           #07100a;
-    --surface:      #0c1810;
-    --surface2:     #111f15;
-    --border:       #1a3025;
-    --border2:      #234d35;
-    --text:         #cdddd4;
-    --text-dim:     #4d7a5e;
-    --text-muted:   #1e3d28;
-    --accent:       #00e676;
-    --accent-soft:  #00e67614;
-    --accent-mid:   #00e67633;
-    --accent2:      #00b894;
-    --warn:         #f9ca24;
-    --danger:       #e55039;
-    --font-display: 'Syne', sans-serif;
-    --font-body:    'DM Sans', sans-serif;
+    --bg:          #06100a;
+    --surface:     #0b1a10;
+    --surface2:    #0f2016;
+    --border:      #162a1e;
+    --border2:     #1e3d2a;
+    --text:        #d4e8db;
+    --text-dim:    #5a8a6a;
+    --text-muted:  #233d2c;
+    --accent:      #00e676;
+    --accent-soft: #00e67610;
+    --accent-mid:  #00e67628;
+    --accent2:     #00c864;
+    --warn:        #f0c040;
+    --font-serif:  'Playfair Display', Georgia, serif;
+    --font-sans:   'Plus Jakarta Sans', system-ui, sans-serif;
+    --font-mono:   'DM Mono', monospace;
+    --radius:      8px;
+    --radius-lg:   12px;
   }
 
   html { scroll-behavior: smooth; }
@@ -44,747 +60,836 @@ const css = `
   body {
     background: var(--bg);
     color: var(--text);
-    font-family: var(--font-body);
+    font-family: var(--font-sans);
     font-size: 15px;
-    line-height: 1.6;
+    line-height: 1.65;
     min-height: 100vh;
     -webkit-font-smoothing: antialiased;
   }
 
   ::selection { background: var(--accent-mid); color: var(--accent); }
-  ::-webkit-scrollbar { width: 3px; }
-  ::-webkit-scrollbar-thumb { background: var(--border2); }
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
 
-  /* ── LAYOUT ── */
-  .shell { min-height: 100vh; display: flex; flex-direction: column; }
-
-  /* ── NAV ── */
+  /* ── NAV ────────────────────────────────── */
   .nav {
-    height: 60px;
+    height: 68px;
     display: flex; align-items: center;
-    padding: 0 48px;
-    border-bottom: 1px solid var(--border);
-    background: rgba(7,16,10,0.96);
+    padding: 0 56px;
+    background: rgba(6,16,10,0.94);
     position: sticky; top: 0; z-index: 100;
-    backdrop-filter: blur(16px);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--border);
   }
 
   .nav-logo {
-    font-family: var(--font-display);
-    font-weight: 800; font-size: 0.85rem;
-    letter-spacing: 2px; text-transform: uppercase;
-    color: var(--text); margin-right: 48px; cursor: pointer;
-    display: flex; align-items: center; gap: 10px;
-    text-decoration: none;
+    display: flex; align-items: center; gap: 12px;
+    cursor: pointer; margin-right: 52px; text-decoration: none;
   }
 
-  .nav-logo-mark {
-    width: 28px; height: 28px;
+  .nav-logo-icon {
+    width: 36px; height: 36px;
     background: var(--accent);
+    border-radius: 6px;
     display: flex; align-items: center; justify-content: center;
-    font-size: 0.7rem; color: #07100a; font-weight: 800;
   }
 
-  .nav-links { display: flex; gap: 4px; flex: 1; }
+  .nav-logo-icon svg { width: 18px; height: 18px; }
+
+  .nav-logo-text {
+    font-family: var(--font-serif);
+    font-weight: 700; font-size: 1rem;
+    color: var(--text); letter-spacing: 0.2px;
+  }
+
+  .nav-links { display: flex; gap: 2px; flex: 1; }
 
   .nav-link {
-    padding: 0 14px; height: 60px;
+    padding: 0 16px; height: 68px;
     display: flex; align-items: center;
-    font-size: 0.8rem; font-weight: 500;
+    font-size: 0.875rem; font-weight: 500;
     color: var(--text-dim); cursor: pointer;
     border: none; background: none;
-    font-family: var(--font-body);
-    transition: color 0.15s;
+    font-family: var(--font-sans);
+    transition: color 0.2s;
     border-bottom: 2px solid transparent;
-    letter-spacing: 0.3px;
+    letter-spacing: 0.1px;
   }
   .nav-link:hover { color: var(--text); }
   .nav-link.active { color: var(--accent); border-bottom-color: var(--accent); }
 
-  .nav-right { margin-left: auto; display: flex; align-items: center; gap: 12px; }
+  .nav-right { margin-left: auto; display: flex; align-items: center; gap: 16px; }
 
   .nav-arbi {
     display: flex; align-items: center; gap: 8px;
-    padding: 8px 18px;
-    background: var(--accent); color: #07100a;
+    padding: 10px 22px;
+    background: var(--accent); color: #06100a;
     border: none; cursor: pointer;
-    font-family: var(--font-display);
-    font-weight: 700; font-size: 0.72rem;
-    letter-spacing: 1.5px; text-transform: uppercase;
-    transition: opacity 0.2s;
+    font-family: var(--font-sans);
+    font-weight: 600; font-size: 0.82rem;
+    border-radius: var(--radius);
+    transition: all 0.2s;
+    letter-spacing: 0.2px;
   }
-  .nav-arbi:hover { opacity: 0.88; }
-  .nav-arbi-dot { width: 6px; height: 6px; border-radius: 50%; background: #07100a; }
+  .nav-arbi:hover { background: var(--accent2); transform: translateY(-1px); box-shadow: 0 4px 20px rgba(0,230,118,0.25); }
 
-  /* ── MAIN ── */
-  .main { flex: 1; }
+  .nav-arbi-pulse {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: #06100a;
+    animation: livepulse 2s ease-in-out infinite;
+  }
+  @keyframes livepulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
 
-  /* ── HERO ── */
+  /* ── HERO ──────────────────────────────── */
   .hero {
-    padding: 96px 48px 80px;
+    min-height: 88vh;
+    display: grid; grid-template-columns: 1fr 1fr;
+    align-items: stretch;
     border-bottom: 1px solid var(--border);
-    position: relative; overflow: hidden;
   }
 
-  .hero-bg {
-    position: absolute; inset: 0; z-index: 0;
-    background:
-      radial-gradient(ellipse 60% 50% at 80% 50%, rgba(0,230,118,0.04) 0%, transparent 70%),
-      radial-gradient(ellipse 30% 60% at 10% 80%, rgba(0,184,148,0.03) 0%, transparent 60%);
+  .hero-left {
+    padding: 96px 56px;
+    display: flex; flex-direction: column;
+    justify-content: center;
   }
 
-  .hero-inner { position: relative; z-index: 1; max-width: 1200px; margin: 0 auto; }
-
-  .hero-label {
+  .hero-badge {
     display: inline-flex; align-items: center; gap: 10px;
-    font-size: 0.72rem; letter-spacing: 2.5px; text-transform: uppercase;
-    color: var(--accent); font-weight: 600;
-    margin-bottom: 28px;
+    margin-bottom: 36px;
   }
-  .hero-label-line { width: 24px; height: 1px; background: var(--accent); }
+  .hero-badge-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
+  .hero-badge-text {
+    font-size: 0.78rem; font-weight: 500;
+    color: var(--accent); letter-spacing: 1px;
+    text-transform: uppercase;
+  }
 
   .hero-title {
-    font-family: var(--font-display);
-    font-weight: 800;
-    font-size: clamp(2.8rem, 6vw, 5rem);
-    line-height: 1.0;
+    font-family: var(--font-serif);
+    font-weight: 900;
+    font-size: clamp(3rem, 5.5vw, 5.2rem);
+    line-height: 1.05;
     color: #e8f5ee;
-    letter-spacing: -2px;
-    margin-bottom: 24px;
-    max-width: 760px;
+    letter-spacing: -1.5px;
+    margin-bottom: 28px;
   }
-  .hero-title em { font-style: normal; color: var(--accent); }
+  .hero-title em { font-style: italic; color: var(--accent); }
 
   .hero-sub {
     font-size: 1.05rem; color: var(--text-dim);
-    line-height: 1.75; max-width: 520px;
-    margin-bottom: 44px; font-weight: 400;
+    line-height: 1.8; max-width: 460px;
+    margin-bottom: 48px; font-weight: 400;
   }
 
-  .hero-actions { display: flex; gap: 14px; flex-wrap: wrap; }
+  .hero-actions { display: flex; gap: 14px; flex-wrap: wrap; align-items: center; }
 
   .btn-primary {
-    padding: 13px 28px;
-    background: var(--accent); color: #07100a;
+    padding: 14px 32px;
+    background: var(--accent); color: #06100a;
     border: none; cursor: pointer;
-    font-family: var(--font-display);
-    font-weight: 700; font-size: 0.78rem;
-    letter-spacing: 1.5px; text-transform: uppercase;
-    transition: opacity 0.2s, transform 0.2s;
+    font-family: var(--font-sans);
+    font-weight: 600; font-size: 0.875rem;
+    border-radius: var(--radius);
+    transition: all 0.2s;
+    letter-spacing: 0.2px;
   }
-  .btn-primary:hover { opacity: 0.88; transform: translateY(-1px); }
+  .btn-primary:hover { background: var(--accent2); transform: translateY(-1px); box-shadow: 0 6px 24px rgba(0,230,118,0.25); }
 
-  .btn-outline {
-    padding: 12px 28px;
+  .btn-ghost {
+    padding: 13px 28px;
     background: transparent; color: var(--text-dim);
     border: 1px solid var(--border2); cursor: pointer;
-    font-family: var(--font-body);
-    font-weight: 500; font-size: 0.85rem;
-    transition: all 0.15s;
+    font-family: var(--font-sans);
+    font-weight: 500; font-size: 0.875rem;
+    border-radius: var(--radius);
+    transition: all 0.2s;
   }
-  .btn-outline:hover { border-color: var(--accent); color: var(--accent); }
+  .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
 
-  /* ── STATS ── */
-  .stats {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-    border-bottom: 1px solid var(--border);
+  .hero-right {
+    position: relative; overflow: hidden;
+    background: linear-gradient(135deg, #0a2018 0%, #061510 40%, #0d2a1a 100%);
+    display: flex; align-items: center; justify-content: center;
   }
-  .stat {
-    padding: 32px 40px;
-    border-right: 1px solid var(--border);
+
+  .hero-visual {
+    width: 100%; height: 100%;
+    display: flex; align-items: center; justify-content: center;
+    position: relative;
   }
-  .stat:last-child { border-right: none; }
-  .stat-n {
-    font-family: var(--font-display);
-    font-weight: 800; font-size: 2.4rem;
+
+  .hero-orb {
+    width: 380px; height: 380px; border-radius: 50%;
+    background: radial-gradient(circle, rgba(0,230,118,0.12) 0%, rgba(0,200,100,0.06) 40%, transparent 70%);
+    position: absolute;
+  }
+  .hero-orb-2 {
+    width: 240px; height: 240px; border-radius: 50%;
+    background: radial-gradient(circle, rgba(0,230,118,0.18) 0%, transparent 70%);
+    position: absolute;
+    animation: orbpulse 4s ease-in-out infinite;
+  }
+  @keyframes orbpulse { 0%,100%{transform:scale(1);opacity:1} 50%{transform:scale(1.1);opacity:0.7} }
+
+  .hero-stat-cards {
+    position: relative; z-index: 1;
+    display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
+    padding: 48px;
+  }
+
+  .hero-stat-card {
+    background: rgba(11,26,16,0.8);
+    backdrop-filter: blur(12px);
+    border: 1px solid var(--border2);
+    border-radius: var(--radius-lg);
+    padding: 24px;
+  }
+
+  .hsc-n {
+    font-family: var(--font-serif);
+    font-weight: 700; font-size: 2.2rem;
     color: var(--accent); line-height: 1;
     margin-bottom: 6px;
   }
-  .stat-l {
-    font-size: 0.72rem; color: var(--text-dim);
-    letter-spacing: 1px; text-transform: uppercase;
-    font-weight: 500;
+  .hsc-l {
+    font-size: 0.78rem; color: var(--text-dim);
+    font-weight: 500; line-height: 1.3;
   }
+
+  /* ── PATHWAY BAR ── */
+  .pathway {
+    display: flex; overflow-x: auto;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+  }
+  .pathway::-webkit-scrollbar { height: 0; }
+
+  .pnode {
+    flex: 1; min-width: 100px; padding: 18px 20px;
+    display: flex; flex-direction: column; align-items: center;
+    gap: 5px; cursor: pointer; transition: background 0.2s;
+    border-right: 1px solid var(--border);
+  }
+  .pnode:last-child { border-right: none; }
+  .pnode:hover { background: var(--surface2); }
+  .pnode.locked { opacity: 0.28; cursor: not-allowed; }
+  .pnode.current { background: var(--accent-soft); }
+
+  .pnode-icon {
+    width: 32px; height: 32px; border-radius: 50%;
+    border: 1.5px solid var(--border2);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.75rem; color: var(--text-dim);
+    transition: all 0.2s;
+  }
+  .pnode.current .pnode-icon { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+  .pnode.complete .pnode-icon { border-color: var(--accent2); color: var(--accent2); }
+
+  .pnode-name { font-size: 0.72rem; font-weight: 600; color: var(--text-dim); }
+  .pnode.current .pnode-name { color: var(--accent); }
+  .pnode-status { font-size: 0.6rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.8px; }
 
   /* ── SECTIONS ── */
-  .section { padding: 80px 48px; border-bottom: 1px solid var(--border); }
+  .section { padding: 88px 56px; border-bottom: 1px solid var(--border); }
   .section:last-child { border-bottom: none; }
-  .section-inner { max-width: 1200px; margin: 0 auto; }
+  .section-inner { max-width: 1240px; margin: 0 auto; }
 
-  .section-top {
+  .section-head {
     display: flex; justify-content: space-between;
-    align-items: flex-end; margin-bottom: 48px;
-    flex-wrap: wrap; gap: 16px;
+    align-items: flex-end; margin-bottom: 52px;
+    flex-wrap: wrap; gap: 20px;
   }
 
-  .section-label {
-    font-size: 0.68rem; letter-spacing: 2.5px;
-    text-transform: uppercase; color: var(--accent);
-    font-weight: 600; margin-bottom: 10px;
-    display: flex; align-items: center; gap: 8px;
+  .section-eyebrow {
+    font-size: 0.72rem; font-weight: 600;
+    color: var(--accent); letter-spacing: 1.5px;
+    text-transform: uppercase; margin-bottom: 12px;
+    display: flex; align-items: center; gap: 10px;
   }
-  .section-label::before {
+  .section-eyebrow::before {
     content: ''; display: block;
-    width: 20px; height: 1px; background: var(--accent);
+    width: 24px; height: 1.5px; background: var(--accent);
+    border-radius: 1px;
   }
 
   .section-title {
-    font-family: var(--font-display);
-    font-weight: 800; font-size: 2rem;
-    color: #e8f5ee; letter-spacing: -0.5px;
-    line-height: 1.15;
+    font-family: var(--font-serif);
+    font-weight: 700; font-size: 2.2rem;
+    color: #e4f0e8; letter-spacing: -0.5px;
+    line-height: 1.2;
   }
 
   .section-sub {
-    font-size: 0.9rem; color: var(--text-dim);
-    line-height: 1.7; max-width: 480px;
-    margin-top: 6px;
+    font-size: 0.925rem; color: var(--text-dim);
+    line-height: 1.75; max-width: 480px;
+    margin-top: 10px; font-weight: 400;
   }
 
-  .view-all {
-    font-size: 0.75rem; color: var(--text-dim);
+  .see-all {
+    font-size: 0.82rem; color: var(--text-dim);
     cursor: pointer; background: none; border: none;
-    font-family: var(--font-body); transition: color 0.15s;
-    display: flex; align-items: center; gap: 6px; white-space: nowrap;
+    font-family: var(--font-sans); font-weight: 500;
+    transition: color 0.2s;
+    display: flex; align-items: center; gap: 6px;
+    white-space: nowrap; padding: 0;
   }
-  .view-all:hover { color: var(--accent); }
+  .see-all:hover { color: var(--accent); }
 
-  /* ── GRID ── */
-  .grid-2 { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 1px; background: var(--border); }
-  .grid-3 { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1px; background: var(--border); }
+  /* ── GRIDS ── */
+  .grid-2 { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 24px; }
+  .grid-3 { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 24px; }
 
   /* ── SKILL CARD ── */
   .skill-card {
     background: var(--surface);
-    padding: 28px 32px;
-    cursor: pointer;
-    transition: background 0.15s;
-    position: relative;
+    border-radius: var(--radius-lg);
+    overflow: hidden; cursor: pointer;
+    transition: transform 0.25s, box-shadow 0.25s;
     display: flex; flex-direction: column;
-  }
-  .skill-card:hover { background: var(--surface2); }
-  .skill-card::after {
-    content: ''; position: absolute;
-    left: 0; top: 0; bottom: 0; width: 3px;
-    background: var(--card-accent, var(--accent));
-    opacity: 0; transition: opacity 0.15s;
-  }
-  .skill-card:hover::after { opacity: 1; }
-
-  .sc-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; }
-
-  .sc-icon {
-    width: 44px; height: 44px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 1.1rem;
-    border: 1px solid var(--border2);
-    color: var(--accent);
-  }
-
-  .sc-tags { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
-
-  .tag {
-    font-size: 0.62rem; padding: 3px 9px;
     border: 1px solid var(--border);
-    color: var(--text-dim); letter-spacing: 0.5px;
-    font-weight: 500;
   }
-  .tag-green { border-color: rgba(0,230,118,0.3); color: var(--accent); background: var(--accent-soft); }
-  .tag-warn  { border-color: rgba(249,202,36,0.3); color: var(--warn); background: rgba(249,202,36,0.06); }
-  .tag-purple { border-color: rgba(180,126,255,0.3); color: #b47eff; background: rgba(180,126,255,0.06); }
-
-  .sc-title {
-    font-family: var(--font-display);
-    font-weight: 700; font-size: 1.1rem;
-    color: #e0efe6; margin-bottom: 8px;
-    line-height: 1.2;
+  .skill-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 16px 48px rgba(0,0,0,0.4), 0 0 0 1px var(--border2);
   }
 
-  .sc-desc {
-    font-size: 0.85rem; color: var(--text-dim);
-    line-height: 1.65; margin-bottom: 20px; flex: 1;
+  .skill-img {
+    height: 160px; position: relative; overflow: hidden;
+    display: flex; align-items: flex-end;
+  }
+  .skill-img-inner {
+    width: 100%; height: 100%;
+    position: absolute; inset: 0;
+  }
+  .skill-img-overlay {
+    position: absolute; inset: 0;
+    background: linear-gradient(to top, rgba(11,26,16,0.9) 0%, transparent 60%);
+  }
+  .skill-img-tags {
+    position: relative; z-index: 1;
+    padding: 16px; display: flex; gap: 6px; flex-wrap: wrap;
+    width: 100%; align-items: flex-end;
+    justify-content: space-between;
   }
 
-  .sc-progress { height: 2px; background: var(--border); margin-bottom: 16px; }
-  .sc-progress-fill { height: 100%; background: var(--accent); }
+  .pill {
+    display: inline-flex; align-items: center;
+    padding: 4px 12px; border-radius: 100px;
+    font-size: 0.68rem; font-weight: 600;
+    letter-spacing: 0.3px;
+  }
+  .pill-green { background: rgba(0,230,118,0.15); color: var(--accent); border: 1px solid rgba(0,230,118,0.3); }
+  .pill-warn  { background: rgba(240,192,64,0.12); color: var(--warn);   border: 1px solid rgba(240,192,64,0.25); }
+  .pill-purple{ background: rgba(160,100,255,0.12);color: #b47eff;       border: 1px solid rgba(160,100,255,0.25); }
+  .pill-dim   { background: rgba(255,255,255,0.06); color: var(--text-dim); border: 1px solid var(--border2); }
 
-  .sc-foot {
+  .skill-body { padding: 24px; flex: 1; display: flex; flex-direction: column; }
+
+  .skill-title {
+    font-family: var(--font-serif);
+    font-weight: 700; font-size: 1.15rem;
+    color: #e4f0e8; margin-bottom: 10px;
+    line-height: 1.3;
+  }
+
+  .skill-desc {
+    font-size: 0.862rem; color: var(--text-dim);
+    line-height: 1.7; margin-bottom: 20px;
+    flex: 1; font-weight: 400;
+  }
+
+  .skill-progress { height: 3px; background: var(--border); border-radius: 2px; margin-bottom: 16px; overflow: hidden; }
+  .skill-progress-fill { height: 100%; border-radius: 2px; background: var(--accent); transition: width 0.4s; }
+
+  .skill-foot {
     display: flex; justify-content: space-between;
     align-items: center; padding-top: 16px;
     border-top: 1px solid var(--border);
   }
-
-  .sc-meta { font-size: 0.72rem; color: var(--text-muted); letter-spacing: 0.5px; }
-
-  .sc-outputs { display: flex; gap: 5px; align-items: center; }
-  .output-pip { width: 7px; height: 7px; border-radius: 50%; }
+  .skill-meta { font-size: 0.75rem; color: var(--text-muted); font-weight: 500; }
+  .skill-outputs { display: flex; gap: 5px; }
+  .out-dot { width: 8px; height: 8px; border-radius: 50%; }
 
   /* ── TRACK CARD ── */
   .track-card {
-    background: var(--surface); padding: 36px 32px;
-    cursor: pointer; transition: background 0.15s;
-    position: relative; overflow: hidden;
+    background: var(--surface);
+    border-radius: var(--radius-lg);
+    overflow: hidden; cursor: pointer;
+    transition: transform 0.25s, box-shadow 0.25s;
+    border: 1px solid var(--border);
     display: flex; flex-direction: column;
   }
-  .track-card:hover { background: var(--surface2); }
-
-  .track-accent-bar {
-    position: absolute; top: 0; left: 0; right: 0; height: 3px;
+  .track-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 16px 48px rgba(0,0,0,0.4), 0 0 0 1px var(--border2);
   }
 
-  .track-head { display: flex; align-items: center; gap: 14px; margin-bottom: 20px; }
-
-  .track-icon {
-    width: 50px; height: 50px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 1.3rem; border: 1px solid var(--border2);
-    color: var(--accent); flex-shrink: 0;
+  .track-img {
+    height: 180px; position: relative;
+    display: flex; align-items: flex-end; overflow: hidden;
+  }
+  .track-img-inner { position: absolute; inset: 0; }
+  .track-img-overlay {
+    position: absolute; inset: 0;
+    background: linear-gradient(to top, rgba(11,26,16,0.95) 0%, rgba(11,26,16,0.3) 60%, transparent 100%);
+  }
+  .track-img-content {
+    position: relative; z-index: 1;
+    padding: 20px 24px; width: 100%;
+  }
+  .track-img-title {
+    font-family: var(--font-serif);
+    font-weight: 700; font-size: 1.3rem;
+    color: #e4f0e8; line-height: 1.2;
   }
 
-  .track-title {
-    font-family: var(--font-display);
-    font-weight: 700; font-size: 1.15rem;
-    color: #e0efe6; line-height: 1.2;
-  }
-
+  .track-body { padding: 24px; flex: 1; display: flex; flex-direction: column; }
   .track-desc {
-    font-size: 0.85rem; color: var(--text-dim);
-    line-height: 1.65; margin-bottom: 20px; flex: 1;
+    font-size: 0.862rem; color: var(--text-dim);
+    line-height: 1.7; margin-bottom: 20px; flex: 1;
   }
 
-  .track-outcome-block {
-    background: var(--bg); padding: 14px 16px;
-    border-left: 2px solid var(--accent);
+  .track-outcome {
+    background: var(--bg);
+    border-radius: var(--radius);
+    padding: 14px 18px;
+    border-left: 3px solid var(--accent);
     margin-bottom: 20px;
   }
   .track-outcome-label {
-    font-size: 0.62rem; letter-spacing: 1.5px;
-    text-transform: uppercase; color: var(--accent);
-    font-weight: 600; margin-bottom: 4px;
+    font-size: 0.65rem; font-weight: 700;
+    color: var(--accent); letter-spacing: 1.2px;
+    text-transform: uppercase; margin-bottom: 4px;
   }
-  .track-outcome-text { font-size: 0.8rem; color: var(--text-dim); line-height: 1.5; }
+  .track-outcome-text { font-size: 0.8rem; color: var(--text-dim); line-height: 1.55; }
 
   .track-foot {
     display: flex; justify-content: space-between;
-    font-size: 0.72rem; color: var(--text-muted);
-    padding-top: 16px; border-top: 1px solid var(--border);
+    font-size: 0.75rem; color: var(--text-muted);
+    padding-top: 14px; border-top: 1px solid var(--border);
+    font-weight: 500;
   }
 
   /* ── WORKSHOP CARD ── */
   .ws-card {
-    background: var(--surface); padding: 28px 32px;
+    background: var(--surface);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    border: 1px solid var(--border);
+    transition: transform 0.25s, box-shadow 0.25s;
     display: flex; flex-direction: column;
   }
+  .ws-card:hover { transform: translateY(-3px); box-shadow: 0 12px 40px rgba(0,0,0,0.35); }
 
-  .ws-type {
-    display: inline-block; font-size: 0.62rem;
-    letter-spacing: 2px; text-transform: uppercase;
-    padding: 3px 10px; margin-bottom: 16px;
-    border: 1px solid var(--border2); color: var(--text-dim);
-    font-weight: 500;
+  .ws-img {
+    height: 140px; position: relative;
+    background: linear-gradient(135deg, #0a2818 0%, #062010 100%);
+    display: flex; align-items: center; justify-content: center;
   }
-  .ws-type.online { border-color: rgba(0,230,118,0.3); color: var(--accent); }
+  .ws-type-badge {
+    position: absolute; top: 16px; left: 16px;
+    font-size: 0.65rem; font-weight: 600;
+    letter-spacing: 1px; text-transform: uppercase;
+    padding: 4px 12px; border-radius: 100px;
+  }
+  .ws-type-badge.online { background: rgba(0,230,118,0.15); color: var(--accent); border: 1px solid rgba(0,230,118,0.3); }
+  .ws-type-badge.inperson { background: rgba(255,255,255,0.08); color: var(--text-dim); border: 1px solid var(--border2); }
+  .ws-type-badge.hybrid { background: rgba(240,192,64,0.12); color: var(--warn); border: 1px solid rgba(240,192,64,0.25); }
 
+  .ws-icon-area {
+    font-size: 2.5rem; opacity: 0.15;
+  }
+
+  .ws-body { padding: 24px; flex: 1; display: flex; flex-direction: column; }
   .ws-title {
-    font-family: var(--font-display);
+    font-family: var(--font-serif);
     font-weight: 700; font-size: 1.1rem;
-    color: #e0efe6; margin-bottom: 10px; line-height: 1.25;
+    color: #e4f0e8; margin-bottom: 10px; line-height: 1.3;
   }
+  .ws-desc { font-size: 0.862rem; color: var(--text-dim); line-height: 1.7; margin-bottom: 18px; flex: 1; }
 
-  .ws-desc {
-    font-size: 0.85rem; color: var(--text-dim);
-    line-height: 1.65; margin-bottom: 20px; flex: 1;
-  }
-
-  .ws-details { display: flex; flex-direction: column; gap: 5px; margin-bottom: 20px; }
+  .ws-details { display: flex; flex-direction: column; gap: 6px; margin-bottom: 20px; }
   .ws-detail {
     display: flex; align-items: center; gap: 8px;
-    font-size: 0.78rem; color: var(--text-dim);
+    font-size: 0.8rem; color: var(--text-dim); font-weight: 400;
   }
-  .ws-detail-dot { width: 4px; height: 4px; border-radius: 50%; background: var(--accent); flex-shrink: 0; }
+  .ws-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--accent); flex-shrink: 0; opacity: 0.7; }
 
   .ws-foot {
     display: flex; justify-content: space-between;
     align-items: center; padding-top: 16px;
     border-top: 1px solid var(--border);
   }
-
-  .free-tag {
-    font-size: 0.65rem; letter-spacing: 2px;
-    text-transform: uppercase; font-weight: 700;
-    padding: 4px 12px; color: var(--accent);
-    border: 1px solid var(--accent); background: var(--accent-soft);
+  .free-pill {
+    font-size: 0.68rem; font-weight: 700;
+    padding: 5px 14px; border-radius: 100px;
+    background: rgba(0,230,118,0.12); color: var(--accent);
+    border: 1px solid rgba(0,230,118,0.3);
+    letter-spacing: 0.5px;
   }
-
-  .spots { font-size: 0.75rem; color: var(--warn); font-weight: 500; }
-
+  .spots-warn { font-size: 0.75rem; color: var(--warn); font-weight: 600; }
   .ws-apply {
-    font-size: 0.75rem; color: var(--text-dim);
-    background: none; border: 1px solid var(--border);
-    padding: 6px 16px; cursor: pointer;
-    font-family: var(--font-body);
-    transition: all 0.15s;
+    font-size: 0.8rem; font-weight: 500;
+    color: var(--text-dim); background: none;
+    border: 1px solid var(--border2); cursor: pointer;
+    font-family: var(--font-sans); padding: 7px 18px;
+    border-radius: var(--radius); transition: all 0.2s;
   }
   .ws-apply:hover { border-color: var(--accent); color: var(--accent); }
 
-  /* ── PATHWAY ── */
-  .pathway {
-    display: flex; overflow-x: auto;
-    border-bottom: 1px solid var(--border);
-    background: var(--surface);
-  }
-  .pathway::-webkit-scrollbar { height: 0; }
-
-  .pathway-node {
-    flex: 1; min-width: 110px;
-    padding: 20px 24px; cursor: pointer;
-    transition: background 0.15s;
-    border-right: 1px solid var(--border);
-    display: flex; flex-direction: column; align-items: center;
-    gap: 6px; text-align: center;
-  }
-  .pathway-node:last-child { border-right: none; }
-  .pathway-node:hover { background: var(--surface2); }
-  .pathway-node.locked { opacity: 0.3; cursor: default; }
-  .pathway-node.current { background: var(--accent-soft); }
-
-  .pn-icon { font-size: 1.1rem; color: var(--text-dim); }
-  .pathway-node.current .pn-icon { color: var(--accent); }
-  .pn-name { font-size: 0.68rem; font-weight: 600; color: var(--text-dim); letter-spacing: 0.5px; }
-  .pathway-node.current .pn-name { color: var(--accent); }
-  .pn-status { font-size: 0.58rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
-
-  /* ── FILTER ── */
-  .filters { display: flex; gap: 8px; margin-bottom: 40px; flex-wrap: wrap; }
-  .filter {
-    padding: 7px 18px; font-size: 0.78rem;
+  /* ── FILTER BAR ── */
+  .filters { display: flex; gap: 10px; margin-bottom: 44px; flex-wrap: wrap; }
+  .filter-btn {
+    padding: 8px 20px; font-size: 0.82rem; font-weight: 500;
     border: 1px solid var(--border); color: var(--text-dim);
-    background: none; cursor: pointer; font-family: var(--font-body);
-    font-weight: 500; transition: all 0.15s;
+    background: none; cursor: pointer; font-family: var(--font-sans);
+    transition: all 0.2s; border-radius: 100px;
   }
-  .filter:hover { border-color: var(--border2); color: var(--text); }
-  .filter.on { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+  .filter-btn:hover { border-color: var(--border2); color: var(--text); }
+  .filter-btn.on { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
 
   /* ── SKILL DETAIL ── */
-  .detail { padding: 56px 48px; max-width: 1200px; margin: 0 auto; }
+  .detail { padding: 64px 56px; max-width: 1240px; margin: 0 auto; }
 
   .detail-back {
     display: flex; align-items: center; gap: 8px;
-    font-size: 0.78rem; color: var(--text-dim);
+    font-size: 0.82rem; color: var(--text-dim);
     background: none; border: none; cursor: pointer;
-    font-family: var(--font-body); margin-bottom: 40px;
-    transition: color 0.15s;
+    font-family: var(--font-sans); font-weight: 500;
+    margin-bottom: 48px; transition: color 0.2s; padding: 0;
   }
   .detail-back:hover { color: var(--accent); }
 
-  .detail-head {
-    display: grid; grid-template-columns: 1fr auto;
-    gap: 32px; align-items: start;
-    margin-bottom: 56px; padding-bottom: 40px;
-    border-bottom: 1px solid var(--border);
+  .detail-hero {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 0; border-radius: var(--radius-lg);
+    overflow: hidden; border: 1px solid var(--border);
+    margin-bottom: 48px;
   }
 
-  .detail-eyebrow { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+  .detail-hero-img {
+    height: 340px; position: relative;
+    display: flex; align-items: flex-end;
+  }
+  .detail-hero-img-inner { position: absolute; inset: 0; }
+  .detail-hero-img-overlay {
+    position: absolute; inset: 0;
+    background: linear-gradient(to top, rgba(6,16,10,0.85) 0%, transparent 60%);
+  }
+
+  .detail-hero-content {
+    background: var(--surface); padding: 48px;
+    display: flex; flex-direction: column; justify-content: center;
+  }
 
   .detail-title {
-    font-family: var(--font-display);
-    font-weight: 800; font-size: 2.4rem;
+    font-family: var(--font-serif);
+    font-weight: 900; font-size: 2.4rem;
     color: #e8f5ee; letter-spacing: -1px;
-    line-height: 1.1; margin-bottom: 14px;
+    line-height: 1.1; margin-bottom: 16px;
   }
 
   .detail-desc {
     font-size: 0.95rem; color: var(--text-dim);
-    line-height: 1.75; max-width: 560px;
+    line-height: 1.8; margin-bottom: 32px; font-weight: 400;
   }
 
-  .detail-actions { display: flex; flex-direction: column; gap: 10px; min-width: 180px; }
+  .detail-actions { display: flex; gap: 12px; flex-wrap: wrap; }
 
   .detail-body {
     display: grid; grid-template-columns: 1fr 300px;
-    gap: 1px; background: var(--border);
+    gap: 24px;
   }
 
-  .detail-main { background: var(--surface); padding: 36px; }
-  .detail-side { background: var(--surface); padding: 28px; }
-
-  .modules-head {
-    font-size: 0.68rem; letter-spacing: 2px;
-    text-transform: uppercase; color: var(--accent);
-    font-weight: 600; margin-bottom: 20px;
-    padding-bottom: 12px; border-bottom: 1px solid var(--border);
+  .detail-main {
+    background: var(--surface); border-radius: var(--radius-lg);
+    border: 1px solid var(--border); overflow: hidden;
   }
 
-  .module-list { display: flex; flex-direction: column; gap: 1px; background: var(--border); }
+  .modules-header {
+    padding: 20px 28px; border-bottom: 1px solid var(--border);
+    font-size: 0.75rem; font-weight: 700;
+    color: var(--accent); letter-spacing: 1.5px; text-transform: uppercase;
+  }
 
   .module-row {
-    background: var(--bg); padding: 16px 20px;
     display: flex; align-items: center; gap: 16px;
+    padding: 18px 28px; border-bottom: 1px solid var(--border);
     cursor: pointer; transition: background 0.15s;
   }
+  .module-row:last-child { border-bottom: none; }
   .module-row:hover { background: var(--surface2); }
 
   .mod-num {
-    width: 28px; height: 28px; flex-shrink: 0;
+    width: 32px; height: 32px; border-radius: 50%;
     display: flex; align-items: center; justify-content: center;
-    border: 1px solid var(--border2);
-    font-size: 0.68rem; color: var(--text-dim);
-    font-family: var(--font-display); font-weight: 700;
+    border: 1.5px solid var(--border2);
+    font-size: 0.72rem; color: var(--text-dim);
+    font-family: var(--font-serif); font-weight: 700;
+    flex-shrink: 0; transition: all 0.2s;
   }
-  .mod-num.done {
-    border-color: var(--accent); color: var(--accent);
-    background: var(--accent-soft);
-  }
+  .mod-num.done { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
 
   .mod-info { flex: 1; }
-  .mod-title { font-size: 0.88rem; color: var(--text); font-weight: 500; margin-bottom: 3px; }
-  .mod-meta { font-size: 0.68rem; color: var(--text-dim); }
+  .mod-title { font-size: 0.9rem; color: var(--text); font-weight: 500; margin-bottom: 3px; }
+  .mod-meta { font-size: 0.72rem; color: var(--text-dim); }
 
-  .mod-type-badge {
-    font-size: 0.6rem; padding: 2px 9px;
+  .mod-badge {
+    font-size: 0.65rem; padding: 3px 10px;
+    border-radius: 100px; font-weight: 600;
+    background: var(--surface2); color: var(--text-muted);
     border: 1px solid var(--border);
-    color: var(--text-muted); text-transform: uppercase;
-    letter-spacing: 0.5px;
   }
 
-  .side-block { margin-bottom: 28px; padding-bottom: 28px; border-bottom: 1px solid var(--border); }
-  .side-block:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+  .detail-side { display: flex; flex-direction: column; gap: 20px; }
 
-  .side-label {
-    font-size: 0.65rem; letter-spacing: 2px;
-    text-transform: uppercase; color: var(--accent);
-    font-weight: 600; margin-bottom: 14px;
+  .side-card {
+    background: var(--surface); border-radius: var(--radius-lg);
+    border: 1px solid var(--border); padding: 24px;
+  }
+
+  .side-title {
+    font-size: 0.72rem; font-weight: 700;
+    color: var(--accent); letter-spacing: 1.5px;
+    text-transform: uppercase; margin-bottom: 16px;
+    padding-bottom: 12px; border-bottom: 1px solid var(--border);
   }
 
   .meta-row {
-    display: flex; justify-content: space-between;
-    padding: 8px 0; border-bottom: 1px solid var(--border);
-    font-size: 0.8rem;
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 9px 0; border-bottom: 1px solid var(--border);
+    font-size: 0.82rem;
   }
   .meta-row:last-child { border-bottom: none; }
-  .meta-key { color: var(--text-dim); }
-  .meta-val { color: var(--text); font-weight: 500; }
+  .meta-k { color: var(--text-dim); font-weight: 400; }
+  .meta-v { color: var(--text); font-weight: 600; }
 
-  .arbi-nudge {
-    background: var(--bg); padding: 18px 20px;
-    border-left: 2px solid var(--accent);
+  .arbi-cta {
+    background: var(--accent-soft);
+    border: 1px solid rgba(0,230,118,0.2);
+    border-radius: var(--radius-lg);
+    padding: 24px;
   }
-  .arbi-nudge-title {
-    font-size: 0.7rem; letter-spacing: 1.5px;
-    text-transform: uppercase; color: var(--accent);
-    font-weight: 600; margin-bottom: 8px;
+  .arbi-cta-title {
+    font-family: var(--font-serif);
+    font-weight: 700; font-size: 1rem;
+    color: var(--accent); margin-bottom: 10px;
   }
-  .arbi-nudge-text {
-    font-size: 0.8rem; color: var(--text-dim);
-    line-height: 1.6; margin-bottom: 14px;
+  .arbi-cta-text {
+    font-size: 0.82rem; color: var(--text-dim);
+    line-height: 1.65; margin-bottom: 16px;
   }
 
-  /* ── ARBI PANEL ── */
-  .arbi-overlay {
+  /* ── ARBI DRAWER ── */
+  .overlay {
     position: fixed; inset: 0; z-index: 200;
-    background: rgba(7,16,10,0.7);
-    backdrop-filter: blur(4px);
-    animation: fadeOverlay 0.2s ease;
+    background: rgba(6,16,10,0.65);
+    backdrop-filter: blur(6px);
+    animation: fadeIn 0.2s ease;
   }
-  @keyframes fadeOverlay { from{opacity:0} to{opacity:1} }
+  @keyframes fadeIn { from{opacity:0} to{opacity:1} }
 
-  .arbi-drawer {
+  .drawer {
     position: fixed; right: 0; top: 0; bottom: 0;
-    width: min(480px, 100vw); z-index: 201;
-    background: #050d08;
-    border-left: 1px solid #0d2418;
+    width: min(500px, 100vw); z-index: 201;
+    background: #040906;
+    border-left: 1px solid #0d2018;
     display: flex; flex-direction: column;
-    animation: slideIn 0.25s cubic-bezier(0.16,1,0.3,1);
+    animation: drawerIn 0.28s cubic-bezier(0.16,1,0.3,1);
+    box-shadow: -24px 0 80px rgba(0,0,0,0.5);
   }
-  @keyframes slideIn { from{transform:translateX(100%)} to{transform:translateX(0)} }
+  @keyframes drawerIn { from{transform:translateX(100%)} to{transform:translateX(0)} }
 
-  .arbi-head {
-    padding: 20px 24px; border-bottom: 1px solid #0d2418;
+  .drawer-head {
+    padding: 22px 28px;
+    border-bottom: 1px solid #0d2018;
     display: flex; align-items: center; gap: 14px;
+    background: #060e08;
   }
 
-  .arbi-avatar {
-    width: 42px; height: 42px;
+  .arbi-av {
+    width: 44px; height: 44px;
     border: 1.5px solid var(--accent);
+    border-radius: 10px;
     display: flex; align-items: center; justify-content: center;
-    font-size: 1rem; color: var(--accent);
-    box-shadow: 0 0 16px rgba(0,230,118,0.2);
-    animation: arbipulse 3s ease-in-out infinite;
-    flex-shrink: 0;
+    font-size: 1.1rem; color: var(--accent);
+    box-shadow: 0 0 20px rgba(0,230,118,0.15);
+    animation: avpulse 3s ease-in-out infinite;
+    flex-shrink: 0; font-family: var(--font-mono);
   }
-  @keyframes arbipulse {
-    0%,100%{box-shadow:0 0 12px rgba(0,230,118,0.15);}
-    50%{box-shadow:0 0 28px rgba(0,230,118,0.3);}
-  }
+  @keyframes avpulse { 0%,100%{box-shadow:0 0 16px rgba(0,230,118,0.12)} 50%{box-shadow:0 0 32px rgba(0,230,118,0.25)} }
 
-  .arbi-head-text { flex: 1; }
-  .arbi-head-name {
-    font-family: 'DM Mono', monospace;
-    font-size: 0.85rem; color: var(--accent);
+  .drawer-head-info { flex: 1; }
+  .drawer-head-name {
+    font-family: var(--font-mono);
+    font-size: 0.88rem; color: var(--accent);
     letter-spacing: 2px; font-weight: 500;
   }
-  .arbi-head-sub {
-    font-size: 0.62rem; color: #2d5a3e;
+  .drawer-head-sub {
+    font-size: 0.6rem; color: #2a5a38;
     letter-spacing: 1px; margin-top: 2px;
-    font-family: 'DM Mono', monospace;
+    font-family: var(--font-mono);
+    text-transform: uppercase;
   }
 
-  .arbi-close {
-    background: none; border: 1px solid #1a3025;
-    color: #2d5a3e; width: 32px; height: 32px;
+  .drawer-close {
+    width: 34px; height: 34px;
+    background: none; border: 1px solid #162a1e;
+    color: #2a5a38; cursor: pointer;
     display: flex; align-items: center; justify-content: center;
-    cursor: pointer; font-size: 1rem; transition: all 0.15s;
-    font-family: 'DM Mono', monospace;
+    font-size: 0.9rem; transition: all 0.15s;
+    border-radius: 6px;
   }
-  .arbi-close:hover { border-color: var(--accent); color: var(--accent); }
+  .drawer-close:hover { border-color: var(--accent); color: var(--accent); }
 
-  .arbi-msgs {
+  .drawer-msgs {
     flex: 1; overflow-y: auto;
-    padding: 24px; display: flex; flex-direction: column; gap: 16px;
+    padding: 24px 28px; display: flex;
+    flex-direction: column; gap: 18px;
   }
-  .arbi-msgs::-webkit-scrollbar { width: 2px; }
-  .arbi-msgs::-webkit-scrollbar-thumb { background: #1a3025; }
+  .drawer-msgs::-webkit-scrollbar { width: 2px; }
+  .drawer-msgs::-webkit-scrollbar-thumb { background: #162a1e; border-radius: 1px; }
 
-  .msg { display: flex; gap: 10px; max-width: 100%; }
-  .msg-u { flex-direction: row-reverse; align-self: flex-end; }
+  .msg { display: flex; gap: 10px; animation: msgIn 0.2s ease; }
+  .msg-u { flex-direction: row-reverse; align-self: flex-end; max-width: 85%; }
+  @keyframes msgIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
 
   .msg-av {
-    width: 26px; height: 26px; flex-shrink: 0;
+    width: 28px; height: 28px; flex-shrink: 0;
     display: flex; align-items: center; justify-content: center;
-    font-size: 0.6rem; align-self: flex-start;
-    font-family: 'DM Mono', monospace;
+    font-size: 0.62rem; align-self: flex-start;
+    border-radius: 6px; font-family: var(--font-mono);
   }
-  .msg-av-a { border: 1px solid var(--accent); color: var(--accent); }
-  .msg-av-u { border: 1px solid #1a3025; color: #2d5a3e; }
+  .msg-av-a { border: 1px solid var(--accent); color: var(--accent); background: rgba(0,230,118,0.05); }
+  .msg-av-u { border: 1px solid #162a1e; color: #2a5a38; }
 
   .msg-bub {
-    padding: 11px 15px; font-size: 0.82rem;
-    line-height: 1.7; max-width: calc(100% - 40px);
-    font-family: 'DM Mono', monospace;
+    padding: 12px 16px;
+    font-size: 0.82rem; line-height: 1.75;
+    font-family: var(--font-mono);
+    border-radius: 8px;
   }
-  .msg-bub-a { background: #0a1810; border: 1px solid #1a3025; color: #a8c8b4; }
-  .msg-bub-u { background: rgba(0,230,118,0.07); border: 1px solid rgba(0,230,118,0.2); color: #a8c8b4; }
+  .msg-bub-a { background: #0a1a10; border: 1px solid #162a1e; color: #a8c8b4; max-width: 100%; }
+  .msg-bub-u { background: rgba(0,230,118,0.07); border: 1px solid rgba(0,230,118,0.18); color: #a8c8b4; }
 
-  .msg-typing { display: flex; gap: 5px; align-items: center; padding: 12px 15px; background: #0a1810; border: 1px solid #1a3025; }
-  .tdot { width: 5px; height: 5px; border-radius: 50%; background: var(--accent); animation: tdots 1.2s ease-in-out infinite; }
-  .tdot:nth-child(2){animation-delay:.2s} .tdot:nth-child(3){animation-delay:.4s}
-  @keyframes tdots{0%,60%,100%{transform:translateY(0);opacity:.3}30%{transform:translateY(-5px);opacity:1}}
+  .typing { display: flex; gap: 5px; padding: 13px 16px; background: #0a1a10; border: 1px solid #162a1e; border-radius: 8px; }
+  .td { width: 5px; height: 5px; border-radius: 50%; background: var(--accent); animation: td 1.2s ease-in-out infinite; }
+  .td:nth-child(2){animation-delay:.2s} .td:nth-child(3){animation-delay:.4s}
+  @keyframes td{0%,60%,100%{transform:translateY(0);opacity:.3}30%{transform:translateY(-5px);opacity:1}}
 
-  @keyframes msgIn { from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)} }
-  .msg { animation: msgIn 0.2s ease; }
+  .drawer-input-wrap { padding: 16px 28px; border-top: 1px solid #0d2018; background: #060e08; }
+  .drawer-input-row { display: flex; gap: 10px; }
 
-  .arbi-input-wrap { padding: 16px 24px; border-top: 1px solid #0d2418; }
-  .arbi-input-row { display: flex; gap: 8px; }
-  .arbi-input {
-    flex: 1; background: #0a1810; border: 1px solid #1a3025;
-    color: #a8c8b4; font-family: 'DM Mono', monospace; font-size: 0.78rem;
-    padding: 10px 14px; outline: none; resize: none; line-height: 1.5;
-    transition: border-color 0.15s;
+  .drawer-input {
+    flex: 1; background: #0a1a10; border: 1px solid #162a1e;
+    color: #a8c8b4; font-family: var(--font-mono); font-size: 0.8rem;
+    padding: 11px 15px; outline: none; resize: none; line-height: 1.5;
+    transition: border-color 0.2s; border-radius: 8px;
   }
-  .arbi-input:focus { border-color: var(--accent); }
-  .arbi-input::placeholder { color: #1e3d28; }
+  .drawer-input:focus { border-color: var(--accent); }
+  .drawer-input::placeholder { color: #1e3d28; }
 
-  .arbi-send {
-    width: 42px; background: var(--accent); color: #07100a;
-    border: none; cursor: pointer; font-size: 1rem;
-    font-weight: 700; transition: opacity 0.2s;
+  .drawer-send {
+    width: 44px; background: var(--accent); color: #06100a;
+    border: none; cursor: pointer; font-size: 1.1rem;
+    font-weight: 700; transition: all 0.2s;
     display: flex; align-items: center; justify-content: center;
+    border-radius: 8px; flex-shrink: 0;
   }
-  .arbi-send:hover{opacity:.85} .arbi-send:disabled{opacity:.3;cursor:not-allowed}
-  .arbi-hint { font-size: 0.6rem; color: #1e3d28; margin-top: 8px; font-family: 'DM Mono', monospace; }
+  .drawer-send:hover{background:var(--accent2)} .drawer-send:disabled{opacity:.3;cursor:not-allowed}
+  .drawer-hint { font-size: 0.6rem; color: #162a1e; margin-top: 8px; font-family: var(--font-mono); }
 
-  @media(max-width:768px){
-    .nav{padding:0 20px}
-    .hero{padding:60px 20px 56px}
-    .section{padding:56px 20px}
-    .stat{padding:24px 20px}
-    .detail{padding:32px 20px}
-    .detail-head{grid-template-columns:1fr}
-    .detail-body{grid-template-columns:1fr}
-    .nav-links .nav-link:not(.active){display:none}
+  @media(max-width:900px){
+    .hero { grid-template-columns: 1fr; }
+    .hero-right { min-height: 300px; }
+    .detail-hero { grid-template-columns: 1fr; }
+    .detail-body { grid-template-columns: 1fr; }
+  }
+  @media(max-width:640px){
+    .nav { padding: 0 20px; }
+    .section { padding: 56px 20px; }
+    .hero-left { padding: 60px 20px; }
+    .detail { padding: 40px 20px; }
+    .nav-links .nav-link:not(.active){ display: none; }
   }
 `
 
 const PATHWAY_NODES = [
-  { id:'utils',      icon:'⟳', name:'Utils',      status:'complete', url:'https://utils-pi-one.vercel.app' },
-  { id:'groundzero', icon:'▣', name:'GroundZero',  status:'complete', url:'https://gzbnos.vercel.app' },
-  { id:'btu',        icon:'⊕', name:'BTU',         status:'complete', url:'https://btu-two.vercel.app' },
-  { id:'skills',     icon:'◎', name:'Skills',      status:'current',  url:'#' },
-  { id:'guuz',       icon:'◆', name:'Guuz',        status:'next',     url:'#' },
-  { id:'profile',    icon:'◉', name:'Profile',     status:'locked',   url:'#' },
-  { id:'career',     icon:'✦', name:'Career',      status:'locked',   url:'#' },
+  { id:'utils',      icon:'⟳', name:'Utils',     status:'complete', url:'https://utils-pi-one.vercel.app' },
+  { id:'groundzero', icon:'▣', name:'GroundZero', status:'complete', url:'https://gzbnos.vercel.app' },
+  { id:'btu',        icon:'⊕', name:'BTU',        status:'complete', url:'https://btu-two.vercel.app' },
+  { id:'skills',     icon:'◎', name:'Skills',     status:'current',  url:'#' },
+  { id:'guuz',       icon:'◆', name:'Guuz',       status:'next',     url:'#' },
+  { id:'profile',    icon:'◉', name:'Profile',    status:'locked',   url:'#' },
+  { id:'career',     icon:'✦', name:'Career',     status:'locked',   url:'#' },
 ]
 
 const CATS = [
-  { id:'all',              label:'All Skills' },
-  { id:'foundation',       label:'Foundation' },
-  { id:'ai',               label:'AI Upskilling' },
-  { id:'consciousness',    label:'Consciousness' },
-  { id:'critical-thinking',label:'Critical Thinking' },
-  { id:'soft-skill',       label:'Soft Skills' },
-  { id:'hard-skill',       label:'Trade Skills' },
+  { id:'all',               label:'All Skills' },
+  { id:'foundation',        label:'Foundation' },
+  { id:'ai',                label:'AI Upskilling' },
+  { id:'consciousness',     label:'Consciousness' },
+  { id:'critical-thinking', label:'Critical Thinking' },
+  { id:'soft-skill',        label:'Soft Skills' },
+  { id:'hard-skill',        label:'Trade Skills' },
 ]
 
 export default function SkillsApp() {
-  const [view, setView]           = useState<View>('home')
-  const [activeSkill, setActive]  = useState<Skill | null>(null)
-  const [cat, setCat]             = useState('all')
-  const [arbiOpen, setArbiOpen]   = useState(false)
-  const [messages, setMessages]   = useState<Message[]>([
-    { role:'assistant', content: ARBI_WELCOME }
-  ])
-  const [input, setInput]   = useState('')
-  const [streaming, setStr] = useState(false)
+  const [view, setView]         = useState<View>('home')
+  const [activeSkill, setActive]= useState<Skill | null>(null)
+  const [cat, setCat]           = useState('all')
+  const [arbi, setArbi]         = useState(false)
+  const [msgs, setMsgs]         = useState<Message[]>([{ role:'assistant', content:ARBI_WELCOME }])
+  const [input, setInput]       = useState('')
+  const [streaming, setStr]     = useState(false)
   const endRef = useRef<HTMLDivElement>(null)
 
-  useEffect(() => { endRef.current?.scrollIntoView({ behavior:'smooth' }) }, [messages])
+  useEffect(()=>{ endRef.current?.scrollIntoView({behavior:'smooth'}) }, [msgs])
 
   async function send() {
     const text = input.trim()
     if (!text || streaming) return
-    const next: Message[] = [...messages, { role:'user', content:text }]
-    setMessages(next)
-    setInput('')
-    setStr(true)
-    setMessages(m => [...m, { role:'assistant', content:'' }])
+    const next: Message[] = [...msgs, {role:'user', content:text}]
+    setMsgs(next); setInput(''); setStr(true)
+    setMsgs(m=>[...m, {role:'assistant', content:''}])
     try {
       const res = await fetch('/api/chat', {
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ messages: next.map(m=>({role:m.role,content:m.content})) })
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({messages: next.map(m=>({role:m.role,content:m.content}))})
       })
       const reader = res.body?.getReader()
       const dec = new TextDecoder()
       if (!reader) return
-      while (true) {
-        const { done, value } = await reader.read()
+      while(true) {
+        const {done, value} = await reader.read()
         if (done) break
         const chunk = dec.decode(value)
-        setMessages(m => {
-          const copy = [...m]
-          copy[copy.length-1] = { role:'assistant', content: copy[copy.length-1].content + chunk }
-          return copy
-        })
+        setMsgs(m=>{ const c=[...m]; c[c.length-1]={role:'assistant',content:c[c.length-1].content+chunk}; return c })
       }
     } catch {
-      setMessages(m => { const c=[...m]; c[c.length-1]={role:'assistant',content:'Connection lost. Please try again.'}; return c })
+      setMsgs(m=>{ const c=[...m]; c[c.length-1]={role:'assistant',content:'Connection lost. Please try again.'}; return c })
     } finally { setStr(false) }
   }
 
-  const filtered = SKILLS.filter(s => cat==='all' || s.category===cat)
-
-  function openSkill(s: Skill) { setActive(s); setView('skill-detail') }
+  const filtered = SKILLS.filter(s=>cat==='all'||s.category===cat)
 
   return (
     <>
-      <style dangerouslySetInnerHTML={{__html: css}} />
+      <style dangerouslySetInnerHTML={{__html:css}}/>
 
       {/* NAV */}
       <nav className="nav">
         <div className="nav-logo" onClick={()=>setView('home')}>
-          <div className="nav-logo-mark">XS</div>
-          XenoGen Skills
+          <div className="nav-logo-icon">
+            <svg viewBox="0 0 18 18" fill="none">
+              <circle cx="9" cy="9" r="6" stroke="#06100a" strokeWidth="1.5"/>
+              <circle cx="9" cy="9" r="2.5" fill="#06100a"/>
+              <line x1="9" y1="3" x2="9" y2="0" stroke="#06100a" strokeWidth="1.5"/>
+              <line x1="9" y1="15" x2="9" y2="18" stroke="#06100a" strokeWidth="1.5"/>
+            </svg>
+          </div>
+          <span className="nav-logo-text">XenoGen Skills</span>
         </div>
         <div className="nav-links">
           {(['home','skills','tracks','workshops'] as const).map(v=>(
@@ -796,244 +901,249 @@ export default function SkillsApp() {
           ))}
         </div>
         <div className="nav-right">
-          <button className="nav-arbi" onClick={()=>setArbiOpen(true)}>
-            <div className="nav-arbi-dot"/>
+          <button className="nav-arbi" onClick={()=>setArbi(true)}>
+            <div className="nav-arbi-pulse"/>
             Talk to ARBI
           </button>
         </div>
       </nav>
 
-      <div className="shell">
-
-        {/* PATHWAY */}
-        <div className="pathway">
-          {PATHWAY_NODES.map(n=>(
-            <div key={n.id}
-              className={`pathway-node ${n.status==='current'?'current':''} ${n.status==='locked'?'locked':''}`}
-              onClick={()=>{ if(n.url!=='#') window.open(n.url,'_blank') }}
-              title={n.status==='locked'?'Complete earlier stages first':`Go to ${n.name}`}>
-              <div className="pn-icon">{n.icon}</div>
-              <div className="pn-name">{n.name}</div>
-              <div className="pn-status">{n.status}</div>
-            </div>
-          ))}
-        </div>
-
-        <main className="main">
-
-          {/* ── HOME ── */}
-          {view==='home' && <>
-            <div className="hero">
-              <div className="hero-bg"/>
-              <div className="hero-inner">
-                <div className="hero-label">
-                  <div className="hero-label-line"/>
-                  XenoGenesis · Layer 3 · Education & Skills
-                </div>
-                <h1 className="hero-title">
-                  From zero<br/>to <em>verified</em><br/>capability.
-                </h1>
-                <p className="hero-sub">
-                  Every skill you complete builds your credential. Every credential
-                  unlocks the next stage. ARBI walks with you — wherever you're starting from.
-                </p>
-                <div className="hero-actions">
-                  <button className="btn-primary" onClick={()=>setView('skills')}>Browse Skills</button>
-                  <button className="btn-outline" onClick={()=>setView('tracks')}>View Learning Tracks</button>
-                  <button className="btn-outline" onClick={()=>setArbiOpen(true)}>Talk to ARBI First</button>
-                </div>
-              </div>
-            </div>
-
-            <div className="stats">
-              {[
-                [PLATFORM_STATS.learnersEnrolled.toLocaleString(), 'Learners Enrolled'],
-                [PLATFORM_STATS.credentialsIssued.toLocaleString(), 'Credentials Issued'],
-                [PLATFORM_STATS.skillsAvailable, 'Skills Available'],
-                [PLATFORM_STATS.completionRate+'%', 'Completion Rate'],
-                [PLATFORM_STATS.workshopsRunning, 'Free Workshops'],
-              ].map(([n,l])=>(
-                <div key={String(l)} className="stat">
-                  <div className="stat-n">{n}</div>
-                  <div className="stat-l">{l}</div>
-                </div>
-              ))}
-            </div>
-
-            <div className="section">
-              <div className="section-inner">
-                <div className="section-top">
-                  <div>
-                    <div className="section-label">Learning Tracks</div>
-                    <h2 className="section-title">Structured paths to real outcomes</h2>
-                    <p className="section-sub">Each track takes you from where you are to a verified outcome. ARBI guides every step.</p>
-                  </div>
-                  <button className="view-all" onClick={()=>setView('tracks')}>All tracks →</button>
-                </div>
-                <div className="grid-2">
-                  {SKILL_TRACKS.slice(0,4).map(t=><TrackCard key={t.id} track={t}/>)}
-                </div>
-              </div>
-            </div>
-
-            <div className="section">
-              <div className="section-inner">
-                <div className="section-top">
-                  <div>
-                    <div className="section-label">Workshops</div>
-                    <h2 className="section-title">Free. In Gauteng and online.</h2>
-                  </div>
-                  <button className="view-all" onClick={()=>setView('workshops')}>All workshops →</button>
-                </div>
-                <div className="grid-2">
-                  {WORKSHOPS.map(w=><WorkshopCard key={w.id} ws={w}/>)}
-                </div>
-              </div>
-            </div>
-          </>}
-
-          {/* ── SKILLS ── */}
-          {view==='skills' && (
-            <div className="section">
-              <div className="section-inner">
-                <div className="section-top">
-                  <div>
-                    <div className="section-label">Skill Library</div>
-                    <h2 className="section-title">Every skill you need</h2>
-                    <p className="section-sub">From literacy foundations to advanced trade skills. Each one earns a verified credential.</p>
-                  </div>
-                </div>
-                <div className="filters">
-                  {CATS.map(c=>(
-                    <button key={c.id} className={`filter ${cat===c.id?'on':''}`} onClick={()=>setCat(c.id)}>
-                      {c.label}
-                    </button>
-                  ))}
-                </div>
-                <div className="grid-3">
-                  {filtered.map(s=><SkillCard key={s.id} skill={s} onClick={()=>openSkill(s)}/>)}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* ── TRACKS ── */}
-          {view==='tracks' && (
-            <div className="section">
-              <div className="section-inner">
-                <div className="section-top">
-                  <div>
-                    <div className="section-label">Learning Tracks</div>
-                    <h2 className="section-title">Structured pathways to outcomes</h2>
-                    <p className="section-sub">Tracks combine skills into a guided journey. Start one and ARBI walks you through every step.</p>
-                  </div>
-                </div>
-                <div className="grid-2">
-                  {SKILL_TRACKS.map(t=><TrackCard key={t.id} track={t}/>)}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* ── WORKSHOPS ── */}
-          {view==='workshops' && (
-            <div className="section">
-              <div className="section-inner">
-                <div className="section-top">
-                  <div>
-                    <div className="section-label">Workshops & Programmes</div>
-                    <h2 className="section-title">Free. Real. In your area.</h2>
-                    <p className="section-sub">All workshops are free. In-person in Johannesburg and Gauteng. Online sessions run weekly.</p>
-                  </div>
-                </div>
-                <div className="grid-2">
-                  {WORKSHOPS.map(w=><WorkshopCard key={w.id} ws={w}/>)}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* ── SKILL DETAIL ── */}
-          {view==='skill-detail' && activeSkill && (
-            <SkillDetail skill={activeSkill} onBack={()=>setView('skills')} onARBI={()=>setArbiOpen(true)}/>
-          )}
-
-        </main>
+      {/* PATHWAY */}
+      <div className="pathway">
+        {PATHWAY_NODES.map(n=>(
+          <div key={n.id}
+            className={`pnode ${n.status} ${n.status==='current'?'current':''}`}
+            onClick={()=>{ if(n.url!=='#'&&n.status!=='locked') window.open(n.url,'_blank') }}>
+            <div className="pnode-icon">{n.icon}</div>
+            <div className="pnode-name">{n.name}</div>
+            <div className="pnode-status">{n.status}</div>
+          </div>
+        ))}
       </div>
 
-      {/* ARBI DRAWER */}
-      {arbiOpen && (
-        <>
-          <div className="arbi-overlay" onClick={()=>setArbiOpen(false)}/>
-          <div className="arbi-drawer">
-            <div className="arbi-head">
-              <div className="arbi-avatar">◈</div>
-              <div className="arbi-head-text">
-                <div className="arbi-head-name">ARBI</div>
-                <div className="arbi-head-sub">SKILLS PLATFORM GUIDE · XENOGENESIS</div>
-              </div>
-              <button className="arbi-close" onClick={()=>setArbiOpen(false)}>✕</button>
+      {/* ── HOME ── */}
+      {view==='home' && <>
+        <div className="hero">
+          <div className="hero-left">
+            <div className="hero-badge">
+              <div className="hero-badge-dot"/>
+              <span className="hero-badge-text">XenoGenesis · Education & Skills</span>
             </div>
-            <div className="arbi-msgs">
-              {messages.map((m,i)=>(
-                <div key={i} className={`msg ${m.role==='user'?'msg-u':''}`}>
-                  <div className={`msg-av ${m.role==='assistant'?'msg-av-a':'msg-av-u'}`}>
-                    {m.role==='assistant'?'◈':'○'}
-                  </div>
-                  {m.role==='assistant'&&streaming&&i===messages.length-1&&m.content===''
-                    ? <div className="msg-typing"><div className="tdot"/><div className="tdot"/><div className="tdot"/></div>
-                    : <div className={`msg-bub ${m.role==='assistant'?'msg-bub-a':'msg-bub-u'}`}>{m.content}</div>
-                  }
-                </div>
-              ))}
-              <div ref={endRef}/>
-            </div>
-            <div className="arbi-input-wrap">
-              <div className="arbi-input-row">
-                <textarea
-                  className="arbi-input" rows={2} value={input}
-                  onChange={e=>setInput(e.target.value)}
-                  onKeyDown={e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send()}}}
-                  placeholder="Ask ARBI about your learning journey..."
-                />
-                <button className="arbi-send" onClick={send} disabled={streaming||!input.trim()}>→</button>
-              </div>
-              <div className="arbi-hint">ENTER to send · SHIFT+ENTER new line</div>
+            <h1 className="hero-title">
+              From zero<br/>to <em>verified</em><br/>capability.
+            </h1>
+            <p className="hero-sub">
+              Every skill you complete builds your credential. Every credential
+              unlocks the next stage of your journey. ARBI walks with you —
+              wherever you're starting from.
+            </p>
+            <div className="hero-actions">
+              <button className="btn-primary" onClick={()=>setView('skills')}>Browse Skills</button>
+              <button className="btn-ghost" onClick={()=>setView('tracks')}>View Learning Tracks</button>
+              <button className="btn-ghost" onClick={()=>setArbi(true)}>Talk to ARBI</button>
             </div>
           </div>
-        </>
+          <div className="hero-right">
+            <div className="hero-visual">
+              <div className="hero-orb"/>
+              <div className="hero-orb-2"/>
+              <div className="hero-stat-cards">
+                {[
+                  [PLATFORM_STATS.learnersEnrolled.toLocaleString(), 'Learners enrolled'],
+                  [PLATFORM_STATS.credentialsIssued.toLocaleString(), 'Credentials issued'],
+                  [PLATFORM_STATS.completionRate+'%', 'Completion rate'],
+                  [PLATFORM_STATS.workshopsRunning+'', 'Free workshops'],
+                ].map(([n,l])=>(
+                  <div key={l} className="hero-stat-card">
+                    <div className="hsc-n">{n}</div>
+                    <div className="hsc-l">{l}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="section">
+          <div className="section-inner">
+            <div className="section-head">
+              <div>
+                <div className="section-eyebrow">Learning Tracks</div>
+                <h2 className="section-title">Structured paths to real outcomes</h2>
+                <p className="section-sub">Each track takes you from where you are to a verified outcome. ARBI guides every step.</p>
+              </div>
+              <button className="see-all" onClick={()=>setView('tracks')}>All tracks →</button>
+            </div>
+            <div className="grid-2">
+              {SKILL_TRACKS.slice(0,4).map((t,i)=><TrackCard key={t.id} track={t} gradient={TRACK_GRADIENTS[i%TRACK_GRADIENTS.length]}/>)}
+            </div>
+          </div>
+        </div>
+
+        <div className="section">
+          <div className="section-inner">
+            <div className="section-head">
+              <div>
+                <div className="section-eyebrow">Workshops & Programmes</div>
+                <h2 className="section-title">Free. In Gauteng and online.</h2>
+              </div>
+              <button className="see-all" onClick={()=>setView('workshops')}>All workshops →</button>
+            </div>
+            <div className="grid-2">
+              {WORKSHOPS.map(w=><WorkshopCard key={w.id} ws={w}/>)}
+            </div>
+          </div>
+        </div>
+      </>}
+
+      {/* ── SKILLS ── */}
+      {view==='skills' && (
+        <div className="section">
+          <div className="section-inner">
+            <div className="section-head">
+              <div>
+                <div className="section-eyebrow">Skill Library</div>
+                <h2 className="section-title">Every skill you need</h2>
+                <p className="section-sub">From literacy foundations to advanced trade skills. Each one earns a verified credential.</p>
+              </div>
+            </div>
+            <div className="filters">
+              {CATS.map(c=>(
+                <button key={c.id} className={`filter-btn ${cat===c.id?'on':''}`} onClick={()=>setCat(c.id)}>
+                  {c.label}
+                </button>
+              ))}
+            </div>
+            <div className="grid-3">
+              {filtered.map(s=>(
+                <SkillCard key={s.id} skill={s}
+                  gradient={CATEGORY_GRADIENTS[s.category]||CATEGORY_GRADIENTS.foundation}
+                  onClick={()=>{ setActive(s); setView('skill-detail') }}/>
+              ))}
+            </div>
+          </div>
+        </div>
       )}
+
+      {/* ── TRACKS ── */}
+      {view==='tracks' && (
+        <div className="section">
+          <div className="section-inner">
+            <div className="section-head">
+              <div>
+                <div className="section-eyebrow">Learning Tracks</div>
+                <h2 className="section-title">Structured pathways to outcomes</h2>
+                <p className="section-sub">Tracks combine skills into a guided journey. Start one and ARBI walks you through every step.</p>
+              </div>
+            </div>
+            <div className="grid-2">
+              {SKILL_TRACKS.map((t,i)=><TrackCard key={t.id} track={t} gradient={TRACK_GRADIENTS[i%TRACK_GRADIENTS.length]}/>)}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── WORKSHOPS ── */}
+      {view==='workshops' && (
+        <div className="section">
+          <div className="section-inner">
+            <div className="section-head">
+              <div>
+                <div className="section-eyebrow">Workshops & Programmes</div>
+                <h2 className="section-title">Free. Real. In your area.</h2>
+                <p className="section-sub">All workshops are free. In-person in Johannesburg and Gauteng. Online sessions run weekly.</p>
+              </div>
+            </div>
+            <div className="grid-2">
+              {WORKSHOPS.map(w=><WorkshopCard key={w.id} ws={w}/>)}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── SKILL DETAIL ── */}
+      {view==='skill-detail' && activeSkill && (
+        <SkillDetail
+          skill={activeSkill}
+          gradient={CATEGORY_GRADIENTS[activeSkill.category]||CATEGORY_GRADIENTS.foundation}
+          onBack={()=>setView('skills')}
+          onARBI={()=>setArbi(true)}
+        />
+      )}
+
+      {/* ── ARBI DRAWER ── */}
+      {arbi && <>
+        <div className="overlay" onClick={()=>setArbi(false)}/>
+        <div className="drawer">
+          <div className="drawer-head">
+            <div className="arbi-av">◈</div>
+            <div className="drawer-head-info">
+              <div className="drawer-head-name">ARBI</div>
+              <div className="drawer-head-sub">Skills Platform Guide · XenoGenesis</div>
+            </div>
+            <button className="drawer-close" onClick={()=>setArbi(false)}>✕</button>
+          </div>
+          <div className="drawer-msgs">
+            {msgs.map((m,i)=>(
+              <div key={i} className={`msg ${m.role==='user'?'msg-u':''}`}>
+                <div className={`msg-av ${m.role==='assistant'?'msg-av-a':'msg-av-u'}`}>
+                  {m.role==='assistant'?'◈':'○'}
+                </div>
+                {m.role==='assistant'&&streaming&&i===msgs.length-1&&m.content===''
+                  ? <div className="typing"><div className="td"/><div className="td"/><div className="td"/></div>
+                  : <div className={`msg-bub ${m.role==='assistant'?'msg-bub-a':'msg-bub-u'}`}>{m.content}</div>
+                }
+              </div>
+            ))}
+            <div ref={endRef}/>
+          </div>
+          <div className="drawer-input-wrap">
+            <div className="drawer-input-row">
+              <textarea className="drawer-input" rows={2} value={input}
+                onChange={e=>setInput(e.target.value)}
+                onKeyDown={e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send()}}}
+                placeholder="Ask ARBI about your learning journey..."/>
+              <button className="drawer-send" onClick={send} disabled={streaming||!input.trim()}>→</button>
+            </div>
+            <div className="drawer-hint">ENTER to send · SHIFT+ENTER for new line</div>
+          </div>
+        </div>
+      </>}
     </>
   )
 }
 
 // ── SKILL CARD ────────────────────────────────────────────────────
-function SkillCard({ skill, onClick }: { skill: Skill; onClick: ()=>void }) {
+function SkillCard({ skill, gradient, onClick }: { skill: Skill; gradient: string; onClick: ()=>void }) {
   return (
-    <div className="skill-card" onClick={onClick}
-      style={{'--card-accent': skill.color} as React.CSSProperties}>
-      <div className="sc-top">
-        <div className="sc-icon" style={{borderColor: skill.color+'33', color: skill.color}}>{skill.icon}</div>
-        <div className="sc-tags">
-          {skill.enrolled   && <span className="tag tag-green">Enrolled</span>}
-          {skill.status==='coming-soon' && <span className="tag tag-warn">Soon</span>}
-          {skill.outputsCredential && <span className="tag tag-purple">Credential</span>}
-          <span className="tag">{skill.hours}h</span>
+    <div className="skill-card" onClick={onClick}>
+      <div className="skill-img">
+        <div className="skill-img-inner" style={{background: gradient}}/>
+        <div className="skill-img-overlay"/>
+        <div className="skill-img-tags">
+          <div style={{display:'flex', gap:6}}>
+            {skill.enrolled && <span className="pill pill-green">Enrolled</span>}
+            {skill.status==='coming-soon' && <span className="pill pill-warn">Coming Soon</span>}
+            {skill.outputsCredential && <span className="pill pill-purple">Credential</span>}
+          </div>
+          <span className="pill pill-dim">{skill.hours}h</span>
         </div>
       </div>
-      <div className="sc-title">{skill.title}</div>
-      <div className="sc-desc">{skill.description}</div>
-      {skill.progress!==undefined && (
-        <div className="sc-progress">
-          <div className="sc-progress-fill" style={{width:`${skill.progress}%`}}/>
-        </div>
-      )}
-      <div className="sc-foot">
-        <div className="sc-meta">{skill.modules.length} modules · {skill.level}</div>
-        <div className="sc-outputs">
-          {skill.outputsToProfile && <div className="output-pip" title="Updates Profile" style={{background:'#b47eff'}}/>}
-          {skill.outputsToMarket  && <div className="output-pip" title="Lists on Guuz"    style={{background:'#ffca28'}}/>}
-          {skill.outputsCredential&& <div className="output-pip" title="Issues Credential" style={{background: skill.color}}/>}
+      <div className="skill-body">
+        <div className="skill-title">{skill.title}</div>
+        <div className="skill-desc">{skill.description}</div>
+        {skill.progress!==undefined && (
+          <div className="skill-progress">
+            <div className="skill-progress-fill" style={{width:`${skill.progress}%`}}/>
+          </div>
+        )}
+        <div className="skill-foot">
+          <div className="skill-meta">{skill.modules.length} modules · {skill.level}</div>
+          <div className="skill-outputs">
+            {skill.outputsToProfile && <div className="out-dot" style={{background:'#b47eff'}} title="Updates Profile"/>}
+            {skill.outputsToMarket  && <div className="out-dot" style={{background:'#f0c040'}} title="Lists on Guuz"/>}
+            {skill.outputsCredential&& <div className="out-dot" style={{background:'#00e676'}} title="Issues Credential"/>}
+          </div>
         </div>
       </div>
     </div>
@@ -1041,22 +1151,26 @@ function SkillCard({ skill, onClick }: { skill: Skill; onClick: ()=>void }) {
 }
 
 // ── TRACK CARD ────────────────────────────────────────────────────
-function TrackCard({ track }: { track: SkillTrack }) {
+function TrackCard({ track, gradient }: { track: SkillTrack; gradient: string }) {
   return (
     <div className="track-card">
-      <div className="track-accent-bar" style={{background: track.color}}/>
-      <div className="track-head">
-        <div className="track-icon" style={{borderColor: track.color+'33', color: track.color}}>{track.icon}</div>
-        <div className="track-title">{track.title}</div>
+      <div className="track-img">
+        <div className="track-img-inner" style={{background: gradient}}/>
+        <div className="track-img-overlay"/>
+        <div className="track-img-content">
+          <div className="track-img-title">{track.title}</div>
+        </div>
       </div>
-      <div className="track-desc">{track.description}</div>
-      <div className="track-outcome-block">
-        <div className="track-outcome-label">Outcome</div>
-        <div className="track-outcome-text">{track.outcome}</div>
-      </div>
-      <div className="track-foot">
-        <span>{track.totalHours}h total</span>
-        <span>{track.skills.length} skills</span>
+      <div className="track-body">
+        <div className="track-desc">{track.description}</div>
+        <div className="track-outcome">
+          <div className="track-outcome-label">Outcome</div>
+          <div className="track-outcome-text">{track.outcome}</div>
+        </div>
+        <div className="track-foot">
+          <span>{track.totalHours}h total</span>
+          <span>{track.skills.length} skills</span>
+        </div>
       </div>
     </div>
   )
@@ -1064,101 +1178,119 @@ function TrackCard({ track }: { track: SkillTrack }) {
 
 // ── WORKSHOP CARD ─────────────────────────────────────────────────
 function WorkshopCard({ ws }: { ws: Workshop }) {
+  const typeClass = ws.type==='online'?'online':ws.type==='hybrid'?'hybrid':'inperson'
+  const typeLabel = ws.type==='in-person'?'In Person':ws.type.charAt(0).toUpperCase()+ws.type.slice(1)
   return (
     <div className="ws-card">
-      <div className={`ws-type ${ws.type==='online'?'online':''}`}>{ws.type}</div>
-      <div className="ws-title">{ws.title}</div>
-      <div className="ws-desc">{ws.description}</div>
-      <div className="ws-details">
-        {ws.location && <div className="ws-detail"><div className="ws-detail-dot"/>{ws.location}</div>}
-        {ws.date     && <div className="ws-detail"><div className="ws-detail-dot"/>{ws.date}</div>}
-        <div className="ws-detail"><div className="ws-detail-dot"/>{ws.duration} · {ws.provider}</div>
+      <div className="ws-img">
+        <span className={`ws-type-badge ${typeClass}`}>{typeLabel}</span>
+        <div className="ws-icon-area">◎</div>
       </div>
-      <div className="ws-foot">
-        <div style={{display:'flex', gap:10, alignItems:'center'}}>
-          <span className="free-tag">FREE</span>
-          {ws.spotsLeft && ws.spotsLeft < 10 && <span className="spots">{ws.spotsLeft} spots left</span>}
+      <div className="ws-body">
+        <div className="ws-title">{ws.title}</div>
+        <div className="ws-desc">{ws.description}</div>
+        <div className="ws-details">
+          {ws.location && <div className="ws-detail"><div className="ws-dot"/>{ws.location}</div>}
+          {ws.date     && <div className="ws-detail"><div className="ws-dot"/>{ws.date}</div>}
+          <div className="ws-detail"><div className="ws-dot"/>{ws.duration} · {ws.provider}</div>
         </div>
-        <button className="ws-apply">Apply →</button>
+        <div className="ws-foot">
+          <div style={{display:'flex', gap:10, alignItems:'center'}}>
+            <span className="free-pill">Free</span>
+            {ws.spotsLeft && ws.spotsLeft < 10 && <span className="spots-warn">{ws.spotsLeft} spots left</span>}
+          </div>
+          <button className="ws-apply">Apply →</button>
+        </div>
       </div>
     </div>
   )
 }
 
 // ── SKILL DETAIL ──────────────────────────────────────────────────
-function SkillDetail({ skill, onBack, onARBI }: { skill: Skill; onBack:()=>void; onARBI:()=>void }) {
+function SkillDetail({ skill, gradient, onBack, onARBI }:
+  { skill: Skill; gradient: string; onBack:()=>void; onARBI:()=>void }) {
   return (
     <div className="detail">
       <button className="detail-back" onClick={onBack}>← Back to Skills</button>
-      <div className="detail-head">
-        <div>
-          <div className="detail-eyebrow">
-            <div className="section-label" style={{marginBottom:0}}>{skill.category.replace('-',' ')}</div>
+      <div className="detail-hero">
+        <div className="detail-hero-img">
+          <div className="detail-hero-img-inner" style={{background: gradient}}/>
+          <div className="detail-hero-img-overlay"/>
+        </div>
+        <div className="detail-hero-content">
+          <div style={{marginBottom:14}}>
+            <span className="pill pill-green" style={{fontSize:'0.72rem'}}>
+              {skill.category.replace('-',' ')}
+            </span>
           </div>
           <h1 className="detail-title">{skill.title}</h1>
           <p className="detail-desc">{skill.description}</p>
-        </div>
-        <div className="detail-actions">
-          <button className="btn-primary" style={{background: skill.color}}>Enrol Now</button>
-          <button className="btn-outline" onClick={onARBI}>Ask ARBI →</button>
+          <div className="detail-actions">
+            <button className="btn-primary">Enrol Now</button>
+            <button className="btn-ghost" onClick={onARBI}>Ask ARBI →</button>
+          </div>
         </div>
       </div>
 
       <div className="detail-body">
         <div className="detail-main">
-          <div className="modules-head">Modules — {skill.modules.length} total</div>
-          {skill.modules.length > 0 ? (
-            <div className="module-list">
-              {skill.modules.map((mod,i)=>(
-                <div key={mod.id} className="module-row">
-                  <div className={`mod-num ${mod.completed?'done':''}`}>{mod.completed?'✓':i+1}</div>
-                  <div className="mod-info">
-                    <div className="mod-title">{mod.title}</div>
-                    <div className="mod-meta">{mod.duration}</div>
-                  </div>
-                  <div className="mod-type-badge">{mod.type}</div>
+          <div className="modules-header">
+            Modules — {skill.modules.length} total
+          </div>
+          {skill.modules.length > 0
+            ? skill.modules.map((mod,i)=>(
+              <div key={mod.id} className="module-row">
+                <div className={`mod-num ${mod.completed?'done':''}`}>{mod.completed?'✓':i+1}</div>
+                <div className="mod-info">
+                  <div className="mod-title">{mod.title}</div>
+                  <div className="mod-meta">{mod.duration}</div>
                 </div>
-              ))}
-            </div>
-          ) : (
-            <div style={{padding:'32px', border:'1px solid var(--border)', textAlign:'center', color:'var(--text-dim)', fontSize:'0.85rem'}}>
-              Modules being finalised — check back soon.
-            </div>
-          )}
+                <span className="mod-badge">{mod.type}</span>
+              </div>
+            ))
+            : <div style={{padding:'40px',textAlign:'center',color:'var(--text-dim)',fontSize:'0.9rem'}}>
+                Modules being finalised — check back soon.
+              </div>
+          }
         </div>
+
         <div className="detail-side">
-          <div className="side-block">
-            <div className="side-label">Details</div>
+          <div className="side-card">
+            <div className="side-title">Details</div>
             {[
-              ['Level',      skill.level],
-              ['Duration',   `${skill.hours} hours`],
-              ['Modules',    `${skill.modules.length}`],
+              ['Level', skill.level],
+              ['Duration', `${skill.hours} hours`],
+              ['Modules', `${skill.modules.length}`],
               ['Credential', skill.outputsCredential?'Issued on completion':'Not included'],
-              ['Marketplace',skill.outputsToMarket?'Listed on Guuz':'Not listed'],
-              ['Profile',    skill.outputsToProfile?'Updates XenoGen Profile':'Not included'],
+              ['Marketplace', skill.outputsToMarket?'Listed on Guuz':'Not listed'],
+              ['Profile', skill.outputsToProfile?'Updates your profile':'Not included'],
             ].map(([k,v])=>(
               <div key={k} className="meta-row">
-                <span className="meta-key">{k}</span>
-                <span className="meta-val">{v}</span>
+                <span className="meta-k">{k}</span>
+                <span className="meta-v">{v}</span>
               </div>
             ))}
           </div>
-          {skill.prerequisites.length>0 && (
-            <div className="side-block">
-              <div className="side-label">Prerequisites</div>
+
+          {skill.prerequisites.length > 0 && (
+            <div className="side-card">
+              <div className="side-title">Prerequisites</div>
               {skill.prerequisites.map(p=>(
-                <div key={p} style={{padding:'7px 12px', border:'1px solid var(--border)', fontSize:'0.8rem', color:'var(--text-dim)', marginBottom:4}}>
+                <div key={p} style={{padding:'8px 12px', border:'1px solid var(--border)', borderRadius:6, fontSize:'0.82rem', color:'var(--text-dim)', marginBottom:6}}>
                   {p}
                 </div>
               ))}
             </div>
           )}
-          <div className="side-block">
-            <div className="arbi-nudge">
-              <div className="arbi-nudge-title">Not sure this is right?</div>
-              <div className="arbi-nudge-text">Ask ARBI and she'll tell you honestly whether this skill fits where you are and where you're going.</div>
-              <button className="btn-outline" onClick={onARBI} style={{width:'100%', textAlign:'center'}}>Open ARBI →</button>
+
+          <div className="arbi-cta">
+            <div className="arbi-cta-title">Not sure this is right for you?</div>
+            <div className="arbi-cta-text">
+              Ask ARBI and she'll tell you honestly whether this skill fits where you are and where you're going.
             </div>
+            <button className="btn-ghost" onClick={onARBI} style={{width:'100%',textAlign:'center'}}>
+              Open ARBI →
+            </button>
           </div>
         </div>
       </div>
